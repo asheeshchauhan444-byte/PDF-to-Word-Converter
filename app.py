@@ -1,14 +1,7 @@
-
 import streamlit as st
 from pathlib import Path
 from pdf_converter import convert_pdf_to_word
 
-BASE_DIR = Path(__file__).resolve().parent
-UPLOAD_DIR = BASE_DIR / "uploads"
-OUTPUT_DIR = BASE_DIR / "outputs"
-
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 st.set_page_config(
     page_title="PDF to Word Converter",
@@ -16,116 +9,69 @@ st.set_page_config(
     layout="centered"
 )
 
-st.title("📄 PDF to Word Converter")
 
+st.title("📄 PDF to Word Converter")
 st.write(
-    "Convert your PDF into a Word document "
-    "while preserving the visual appearance "
-    "of every page."
+    "Convert your PDF into an editable Microsoft Word document "
+    "while preserving text, images and page layout as closely as possible."
 )
 
 st.divider()
 
 uploaded_file = st.file_uploader(
-    "📤 Upload your PDF file",
+    "Upload your PDF file",
     type=["pdf"]
 )
 
 if uploaded_file is not None:
 
-    st.success(
-        f"PDF selected: {uploaded_file.name}"
-    )
+    st.success(f"PDF selected: {uploaded_file.name}")
 
-    st.write(
-        "Ready to convert your PDF."
-    )
+    temp_dir = Path("uploads")
+    output_dir = Path("outputs")
 
-    convert_button = st.button(
-        "🔄 Convert to Word File",
-        type="primary"
-    )
+    temp_dir.mkdir(exist_ok=True)
+    output_dir.mkdir(exist_ok=True)
 
-    if convert_button:
+    input_path = temp_dir / uploaded_file.name
+
+    with open(input_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
+
+    output_name = Path(uploaded_file.name).stem + "_Editable.docx"
+    output_path = output_dir / output_name
+
+    if st.button("🔄 Convert to Word File", use_container_width=True):
 
         try:
-
-            with st.spinner(
-                "Converting PDF to Word..."
-            ):
-
-                input_path = (
-                    UPLOAD_DIR /
-                    uploaded_file.name
-                )
-
-                with open(
-                    input_path,
-                    "wb"
-                ) as file:
-
-                    file.write(
-                        uploaded_file.getbuffer()
-                    )
-
-                output_name = (
-                    Path(
-                        uploaded_file.name
-                    ).stem
-                    + ".docx"
-                )
-
-                output_path = (
-                    OUTPUT_DIR /
-                    output_name
-                )
+            with st.spinner("Converting PDF to editable Word..."):
 
                 convert_pdf_to_word(
-                    input_path,
-                    output_path,
-                    dpi=200
+                    str(input_path),
+                    str(output_path)
                 )
 
-            st.success(
-                "✅ Conversion completed successfully!"
-            )
+            st.success("✅ Conversion completed!")
 
-            with open(
-                output_path,
-                "rb"
-            ) as file:
-
-                word_data = file.read()
+            with open(output_path, "rb") as f:
+                word_data = f.read()
 
             st.download_button(
-                label="📥 Download Word File",
+                label="⬇️ Download Editable Word File",
                 data=word_data,
                 file_name=output_name,
                 mime=(
-                    "application/vnd.openxmlformats-"
-                    "officedocument.wordprocessingml.document"
-                )
+                    "application/vnd.openxmlformats-officedocument."
+                    "wordprocessingml.document"
+                ),
+                use_container_width=True
             )
 
-        except Exception as error:
+        except Exception as e:
 
-            st.error(
-                "❌ Conversion failed."
-            )
-
-            st.code(
-                str(error)
-            )
+            st.error("❌ Conversion failed.")
+            st.code(str(e))
 
 else:
 
-    st.info(
-        "Please upload a PDF file to begin."
-    )
-
-st.divider()
-
-st.caption(
-    "PDF to Word Converter | "
-    "Python + PyMuPDF + python-docx"
-)
+    st.info("👆 Upload a PDF file to start.")
